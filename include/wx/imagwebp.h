@@ -6,7 +6,8 @@
 // Licence:     wxWidgets licence
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef _WX_IMAGWEBP_H_
+#define _WX_IMAGWEBP_H_
 
 #include "wx/image.h"
 
@@ -15,7 +16,7 @@
 //-----------------------------------------------------------------------------
 
 #if wxUSE_WEBP
-class /*WXDLLIMPEXP_CORE*/ wxWEBPHandler : public wxImageHandler // NOTE: WXDLLIMPEXP_CORE exists in reference, but I do not know how to use it correctly
+class WXDLLIMPEXP_CORE wxWEBPHandler : public wxImageHandler
 {
 public:
     inline wxWEBPHandler()
@@ -27,16 +28,16 @@ public:
     }
 
 #if wxUSE_STREAMS
-    virtual bool LoadFile(wxImage *image, wxInputStream& stream, bool verbose=true, int index=-1) /*wxOVERRIDE*/;
-    virtual bool SaveFile(wxImage *image, wxOutputStream& stream, bool verbose=true) /*wxOVERRIDE*/;
+    virtual bool LoadFile(wxImage *image, wxInputStream& stream, bool verbose=true, int index=-1) wxOVERRIDE;
+    virtual bool SaveFile(wxImage *image, wxOutputStream& stream, bool verbose=true) wxOVERRIDE;
 protected:
-    virtual bool DoCanRead(wxInputStream& stream) /*wxOVERRIDE*/;
-    // NOTE: wxOVERRIDE exists in reference, but I do not know how to use it correctly
-#endif
+    virtual bool DoCanRead(wxInputStream& stream) wxOVERRIDE;
+#endif // wxUSE_STREAMS
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxWEBPHandler);
 };
-#else
-    #error "Trying to include wxWEBPHandler without wxUSE_WEBP."
-#endif
+
+#endif // wxUSE_WEBP
+
+#endif // _WX_IMAGWEBP_H_
