@@ -40,8 +40,8 @@ bool wxWEBPHandler::LoadFile(wxImage *image, wxInputStream& stream, bool verbose
     wxStreamBuffer * mosb = mos.GetOutputStreamBuffer();
     const uint8_t * data = reinterpret_cast<uint8_t *>(mosb->GetBufferStart());
     size_t data_size = mosb->GetBufferSize();
-	WebPBitstreamFeatures features;
-	VP8StatusCode status = WebPGetFeatures(data, data_size, &features);
+    WebPBitstreamFeatures features;
+    VP8StatusCode status = WebPGetFeatures(data, data_size, &features);
     if (status != VP8_STATUS_OK) {
         if (verbose) {
            wxLogError("WebP: GetFeatures not OK.");
@@ -81,7 +81,7 @@ bool wxWEBPHandler::DoCanRead(wxInputStream& stream)
     // might be less reliable, but much faster
     const std::string riff = "RIFF";
     const std::string webp = "WEBP";
-    constexpr int buffer_size = 12;
+    const int buffer_size = 12;
     char buffer[buffer_size];
     stream.Read(buffer, buffer_size);
     if (stream.LastRead() != buffer_size) {

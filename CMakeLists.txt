@@ -11,6 +11,7 @@ check_directives.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE include) # find own includes (structure follows wxWidgets' conventions)
 target_compile_definitions(${PROJECT_NAME} PRIVATE wxUSE_IMAGE wxUSE_STREAMS wxUSE_WEBP) # force definitions for stand-alone build (code follows wxWidgets' conventions)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 98)
 find_package(WebP CONFIG)
 if (${WebP_FOUND})
     target_link_libraries(${PROJECT_NAME} PRIVATE ${wxWidgets_LIBRARIES} WebP::webpdecoder)
