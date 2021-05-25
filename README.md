@@ -1,8 +1,8 @@
 # wxWEBPHandler
 
-wxWidgets wxImage handler for WebP reading image files.
+wxWidgets wxImage handler for reading WebP image files.
 
-Alpha channel is currently not supported.
+Saving image with alpha channel is currently not supported.
 
 ## Usage
 
