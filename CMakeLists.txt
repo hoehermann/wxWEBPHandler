@@ -5,9 +5,8 @@ project(${PROJECT_NAME})
 find_package(wxWidgets REQUIRED COMPONENTS core base)
 include(${wxWidgets_USE_FILE})
 add_library(${PROJECT_NAME} STATIC
-src/common/imagwebp.cpp
-include/wx/imagwebp.h
-check_directives.cpp
+    src/common/imagwebp.cpp
+    include/wx/imagwebp.h
 )
 target_include_directories(${PROJECT_NAME} PRIVATE include) # find own includes (structure follows wxWidgets' conventions)
 target_compile_definitions(${PROJECT_NAME} PRIVATE wxUSE_IMAGE wxUSE_STREAMS wxUSE_WEBP wxOVERRIDE=) # force definitions for stand-alone build (code follows wxWidgets' conventions)
@@ -23,4 +22,15 @@ else()
     message(STATUS "WebP_INCLUDE_DIRS: ${WebP_INCLUDE_DIRS}")
     target_include_directories(${PROJECT_NAME} PRIVATE ${WebP_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME} PRIVATE ${wxWidgets_LIBRARIES} ${WebP_LIBRARIES})
+endif()
+
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    add_executable(wxWEBPHandlerTest
+        test/imagwebptest.cpp
+        test/check_directives.cpp
+    )
+    target_include_directories(wxWEBPHandlerTest PRIVATE include)
+    target_compile_definitions(wxWEBPHandlerTest PRIVATE wxUSE_IMAGE wxUSE_STREAMS wxUSE_WEBP wxOVERRIDE=)
+    target_include_directories(wxWEBPHandlerTest PRIVATE ${WebP_INCLUDE_DIRS})
+    target_link_libraries(wxWEBPHandlerTest PRIVATE ${wxWidgets_LIBRARIES} ${WebP_LIBRARIES} ${PROJECT_NAME})
 endif()
