@@ -14,6 +14,7 @@
 #if wxUSE_IMAGE && wxUSE_WEBP
 
 #include "wx/imagwebp.h"
+#include "webp/demux.h"
 #include "webp/decode.h"
 #include "webp/encode.h"
 
@@ -32,16 +33,9 @@ wxIMPLEMENT_DYNAMIC_CLASS(wxWEBPHandler, wxImageHandler);
 
 #include <wx/mstream.h>
 
-bool wxWEBPHandler::LoadFile(wxImage *image, wxInputStream& stream, bool verbose, int WXUNUSED(index))
-{
-    image->Destroy(); // all examples do this, so I do so as well
-    wxMemoryOutputStream mos;
-    stream.Read(mos); // this reads the entire file into memory
-    wxStreamBuffer * mosb = mos.GetOutputStreamBuffer();
-    const uint8_t * data = reinterpret_cast<uint8_t *>(mosb->GetBufferStart());
-    size_t data_size = mosb->GetBufferSize();
+bool DecodeWebPDataIntoImage(wxImage *image, WebPData *webp_data, bool verbose) {
     WebPBitstreamFeatures features;
-    VP8StatusCode status = WebPGetFeatures(data, data_size, &features);
+    VP8StatusCode status = WebPGetFeatures(webp_data->bytes, webp_data->size, &features);
     if (status != VP8_STATUS_OK) 
     {
         if (verbose) 
@@ -54,7 +48,15 @@ bool wxWEBPHandler::LoadFile(wxImage *image, wxInputStream& stream, bool verbose
     if (features.has_alpha) 
     {
         // image has alpha channel. needs to be decoded, then re-ordered.
-        uint8_t * rgba = WebPDecodeRGBA(data, data_size, &features.width, &features.height);
+        uint8_t * rgba = WebPDecodeRGBA(webp_data->bytes, webp_data->size, &features.width, &features.height);
+        if (rgba == NULL) 
+        {
+            if (verbose) 
+            {
+               wxLogError("WebP: WebPDecodeRGBA failed.");
+            }
+            return false;
+        }
         image->InitAlpha();
         unsigned char * rgb = image->GetData();
         unsigned char * alpha = image->GetAlpha();
@@ -74,14 +76,62 @@ bool wxWEBPHandler::LoadFile(wxImage *image, wxInputStream& stream, bool verbose
         // image has no alpha channel. decode into target buffer directly.
         int buffer_size = image->GetWidth() * image->GetHeight() * 3;
         int stride = image->GetWidth() * 3;
-        uint8_t * output_buffer = WebPDecodeRGBInto(data, data_size, image->GetData(), buffer_size, stride);
+        uint8_t * output_buffer = WebPDecodeRGBInto(webp_data->bytes, webp_data->size, image->GetData(), buffer_size, stride);
         if (output_buffer == NULL)
         {
+            if (verbose) 
+            {
+               wxLogError("WebP: WebPDecodeRGBInto failed.");
+            }
             return false;
         }
     }
     image->SetMask(false); // all examples do this, so I do so as well
     return true;
+}
+
+bool DecodeWebPFrameIntoImage(wxImage *image, int index, WebPData *webp_data, bool verbose) 
+{
+    WebPDemuxer* demux = WebPDemux(webp_data);
+    if (demux == NULL) 
+    {
+        if (verbose)
+        {
+            wxLogError("WebP: WebPDemux failed.");
+        }
+        return false;
+    }
+    //uint32_t width = WebPDemuxGetI(demux, WEBP_FF_CANVAS_WIDTH);
+    //uint32_t height = WebPDemuxGetI(demux, WEBP_FF_CANVAS_HEIGHT);
+    bool ok = false;
+    WebPIterator iter;
+    // wxImageHandler index starts from 0, WebPDemuxGetFrame seems to start from 1
+    if (WebPDemuxGetFrame(demux, index+1, &iter)) 
+    {
+        ok = DecodeWebPDataIntoImage(image, &iter.fragment, verbose);
+        WebPDemuxReleaseIterator(&iter);
+    }
+    WebPDemuxDelete(demux);
+    return ok;
+}
+
+#include <iostream>
+
+bool wxWEBPHandler::LoadFile(wxImage *image, wxInputStream& stream, bool verbose, int index)
+{
+    image->Destroy(); // all examples do this, so I do so as well
+    wxMemoryOutputStream mos;
+    stream.Read(mos); // this reads the entire file into memory
+    wxStreamBuffer * mosb = mos.GetOutputStreamBuffer();
+    WebPData webp_data;
+    webp_data.bytes = reinterpret_cast<uint8_t *>(mosb->GetBufferStart());
+    webp_data.size = mosb->GetBufferSize();
+    // apparently, index can be -1 for "don't care", but libwebp does care
+    if (index < 0) 
+    {
+        index = 0;
+    }
+    return DecodeWebPFrameIntoImage(image, index, &webp_data, verbose);
 }
 
 bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbose)
@@ -102,6 +152,8 @@ bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbos
     stream.WriteAll(output, output_size);
     return true;
 }
+
+// TODO: implement int wxWEBPHandler::DoGetImageCount(wxInputStream & stream)
 
 bool wxWEBPHandler::DoCanRead(wxInputStream& stream)
 {
