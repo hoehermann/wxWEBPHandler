@@ -145,7 +145,7 @@ bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbos
     float quality_factor = 90;
     if (image->HasOption(wxIMAGE_OPTION_QUALITY))
     {
-        quality_factor = image->GetOptionInt(wxIMAGE_OPTION_QUALITY) / 100.0f;
+        quality_factor = image->GetOptionInt(wxIMAGE_OPTION_QUALITY);
     }
     uint8_t * output = NULL;
     size_t output_size = WebPEncodeRGB(image->GetData(), image->GetWidth(), image->GetHeight(), stride, quality_factor, &output);
