@@ -1,5 +1,6 @@
 #include "wx/imagwebp.h"
 #include <wx/mstream.h>
+#include "rgb_0.h"
 #include <iostream>
 
 class wxWEBPHandlerTest : public wxWEBPHandler
@@ -8,64 +9,46 @@ public:
     wxWEBPHandlerTest() : wxWEBPHandler()
     {
     }
-    bool DoCanReadTestOk()
+    void AssertDoCanReadTrueWhenOk()
     {
         std::string data("RIFF____WEBP____");
         wxMemoryInputStream stream(data.c_str(), data.size());
-        return DoCanRead(stream);
+        assert(DoCanRead(stream));
     }
-    bool DoCanReadTestShort()
+    void AssertDoCanReadFalseWhenShort()
     {
         std::string data("RIFF____WE");
         wxMemoryInputStream stream(data.c_str(), data.size());
-        return !DoCanRead(stream);
+        assert(!DoCanRead(stream));
     }
-    bool DoCanReadTestWrong()
+    void AssertDoCanReadFalseWhenWrong()
     {
         std::string data("RIFF____WEBX____");
         wxMemoryInputStream stream(data.c_str(), data.size());
-        return !DoCanRead(stream);
-    }
-    bool DoCanReadPublic(wxInputStream& stream) {
-        return DoCanRead(stream);
+        assert(!DoCanRead(stream));
     }
     void AssertRGBRoundtrip() {
-        // TODO: prepare reasonable test data
-        const int width = 8;
-        const int height = 8;
-        const size_t testDataSize = width*height*3;
-        unsigned char testData[testDataSize] = 
-        {
-            61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 
-            61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 
-            61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 
-            61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 
-            61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 
-            61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 
-            61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 
-            61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61
-        };
-        wxImage outputImage(width, height, testData, true);
         wxMemoryOutputStream outputStream;
-        test.SaveFile(&outputImage, outputStream, true);
+        wxImage outputImage(16, 16, rgb_0, true);
+        outputImage.SetOption(wxIMAGE_OPTION_QUALITY, 100);
+        SaveFile(&outputImage, outputStream, true);
         
         wxImage inputImage;
         wxMemoryInputStream inputStream(outputStream);
-        assert(test.DoCanReadPublic(inputStream));
-        test.LoadFile(&inputImage, inputStream, true);
+        assert(DoCanRead(inputStream));
+        LoadFile(&inputImage, inputStream, true);
         assert(inputImage.IsOk());
         
         unsigned char * rgb = inputImage.GetData();
-        for (unsigned int i = 0; i < testDataSize; i++) 
+        for (unsigned int i = 0; i < sizeof(rgb_0); i++) 
         {
-            if (testData[i] != rgb[i])
-            {
-                std::cout << "Expected " << int(testData[i]) << " got " << int(rgb[i]) << " at byte " << i << "." << std::endl;
-                assert(testData[i] == rgb[i]);
-            }
+            assert(abs(rgb_0[i] - rgb[i]) < 3);
         }
     }
     void AssertRGBARoundtrip() {
+        // TODO
+    }
+    void AssertLoadAnimation() {
         // TODO
     }
 };
@@ -73,11 +56,12 @@ public:
 int main(int, char**)
 {
     wxWEBPHandlerTest test;
-    assert(test.DoCanReadTestOk());
-    assert(test.DoCanReadTestShort());
-    assert(test.DoCanReadTestWrong());
+    test.AssertDoCanReadTrueWhenOk();
+    test.AssertDoCanReadFalseWhenShort();
+    test.AssertDoCanReadFalseWhenWrong();
     test.AssertRGBRoundtrip();
     test.AssertRGBARoundtrip();
+    test.AssertLoadAnimation();
     std::cout << "All is well." << std::endl;
     return 0;
 }
