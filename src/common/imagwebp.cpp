@@ -150,7 +150,8 @@ bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbos
     uint8_t * output = NULL;
     size_t output_size = WebPEncodeRGB(image->GetData(), image->GetWidth(), image->GetHeight(), stride, quality_factor, &output);
     stream.WriteAll(output, output_size);
-    return true;
+    WebPFree(output);
+    return (output_size > 0 && stream.LastWrite() == output_size);
 }
 
 // TODO: implement int wxWEBPHandler::DoGetImageCount(wxInputStream & stream)
