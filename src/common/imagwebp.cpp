@@ -17,6 +17,7 @@
 #include "webp/demux.h"
 #include "webp/decode.h"
 #include "webp/encode.h"
+#include <vector>
 
 #ifndef WX_PRECOMP
     #include "wx/intl.h"
@@ -61,9 +62,9 @@ bool DecodeWebPDataIntoImage(wxImage *image, WebPData *webp_data, bool verbose) 
         unsigned char * rgb = image->GetData();
         unsigned char * alpha = image->GetAlpha();
         for (unsigned int index_pixel = 0; index_pixel < image->GetWidth() * image->GetHeight(); index_pixel++) {
-            unsigned int index_rgba = index_pixel*4;
-            unsigned int index_rgb = index_pixel*3;
-            unsigned int index_alpha = index_pixel;
+            unsigned int index_rgba = index_pixel*4; // in RGBA, 1 pixel is 4 bytes
+            unsigned int index_rgb = index_pixel*3; // in RGB, 1 pixel is 3 bytes
+            unsigned int index_alpha = index_pixel; // alpha channel, 1 pixel is 1 byte
             rgb[index_rgb++] = rgba[index_rgba++]; // R
             rgb[index_rgb++] = rgba[index_rgba++]; // G
             rgb[index_rgb++] = rgba[index_rgba++]; // B
@@ -115,8 +116,6 @@ bool DecodeWebPFrameIntoImage(wxImage *image, int index, WebPData *webp_data, bo
     return ok;
 }
 
-#include <iostream>
-
 bool wxWEBPHandler::LoadFile(wxImage *image, wxInputStream& stream, bool verbose, int index)
 {
     image->Destroy(); // all examples do this, so I do so as well
@@ -136,19 +135,35 @@ bool wxWEBPHandler::LoadFile(wxImage *image, wxInputStream& stream, bool verbose
 
 bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbose)
 {
-    if (image->HasAlpha() && verbose)
-    {
-        wxLogWarning("WebP: Saving with alpha not implemented.");
-    }
-    unsigned char * rgb = image->GetData();
-    int stride = image->GetWidth();
     float quality_factor = 90;
     if (image->HasOption(wxIMAGE_OPTION_QUALITY))
     {
         quality_factor = image->GetOptionInt(wxIMAGE_OPTION_QUALITY);
     }
+    size_t output_size = 0;
     uint8_t * output = NULL;
-    size_t output_size = WebPEncodeRGB(image->GetData(), image->GetWidth(), image->GetHeight(), stride, quality_factor, &output);
+    unsigned char * rgb = image->GetData();
+    if (image->HasAlpha())
+    {
+        unsigned char * alpha = image->GetAlpha();
+        int stride = image->GetWidth() * 4; // stride is the "width" of a "line" in bytes
+        std::vector<unsigned char> rgba(stride * image->GetHeight());
+        for (unsigned int index_pixel = 0; index_pixel < image->GetWidth() * image->GetHeight(); index_pixel++) {
+            unsigned int index_rgba = index_pixel*4; // in RGBA, 1 pixel is 4 bytes
+            unsigned int index_rgb = index_pixel*3; // in RGB, 1 pixel is 3 bytes
+            unsigned int index_alpha = index_pixel; // alpha channel, 1 pixel is 1 byte
+            rgba[index_rgba++] = rgb[index_rgb++]; // R
+            rgba[index_rgba++] = rgb[index_rgb++]; // G
+            rgba[index_rgba++] = rgb[index_rgb++]; // B
+            rgba[index_rgba] = alpha[index_alpha]; // A
+        }
+        output_size = WebPEncodeRGBA(rgba.data(), image->GetWidth(), image->GetHeight(), stride, quality_factor, &output);
+    }
+    else
+    {
+        int stride = image->GetWidth() * 3; // stride is the "width" of a "line" in bytes
+        output_size = WebPEncodeRGB(rgb, image->GetWidth(), image->GetHeight(), stride, quality_factor, &output);
+    }
     stream.WriteAll(output, output_size);
     WebPFree(output);
     return (output_size > 0 && stream.LastWrite() == output_size);
