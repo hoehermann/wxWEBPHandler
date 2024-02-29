@@ -2,7 +2,7 @@
 
 wxWidgets wxImage handler for reading WebP image files.
 
-Saving image with alpha channel is currently not supported.
+Animations will only have their first frame shown.
 
 ## Usage
 
