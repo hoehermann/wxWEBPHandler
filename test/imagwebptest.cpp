@@ -2,6 +2,8 @@
 #include <wx/mstream.h>
 #include "rgb_64x64_webpcolors.h"
 #include "gray_64x64_gradient.h"
+#include "webp_16x16_numbers.h"
+#include "rgb_16x16_number0.h"
 #include <iostream>
 #include <wx/wfstream.h>
 
@@ -31,8 +33,9 @@ private:
     {
         for (size_t i = 0; i < length; i++) 
         {
-            //std::cout << int(input[i] - reference[i]) << " ";
-            wxCHECK_MSG(abs(input[i] - reference[i]) <= difference_threshold, false, "Image bytes differ too much.");
+            int difference = abs(input[i] - reference[i]);
+            //std::cout << difference << " ";
+            wxCHECK_MSG(difference <= difference_threshold, false, wxString::Format("Image bytes differ too much: %d > %d", difference, difference_threshold));
         }
         //std::cout << std::endl;
         return true;
@@ -101,7 +104,18 @@ public:
         return true;
     }
     bool AssertLoadAnimation() {
-        // TODO
+        std::cout << "AssertLoadAnimation" <<  std::endl;
+        wxImage loadingImage;
+        wxMemoryInputStream inputStream(webp_16x16_numbers, sizeof(webp_16x16_numbers));
+        bool static_data = true; // the data is static, wxImage shall not free it
+        LoadFile(&loadingImage, inputStream, true);
+        wxCHECK_MSG(loadingImage.IsOk(), false, "Loading image failed.");
+
+        static const int side = 16;
+        unsigned char * rgb_reference = rgb_16x16_number0;
+        static const int rgb_difference_threshold = 5; // webp is a lossy format. allow some differences
+        const unsigned char * rgb = loadingImage.GetData();
+        wxCHECK_MSG(AssertSimilarBytes(rgb, rgb_reference, side*side*3, rgb_difference_threshold), false, "AssertSimilarBytes failed on RGB data.");
         return true;
     }
 };
