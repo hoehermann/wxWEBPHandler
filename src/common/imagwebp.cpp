@@ -33,6 +33,10 @@ wxIMPLEMENT_DYNAMIC_CLASS(wxWEBPHandler, wxImageHandler);
 #if wxUSE_STREAMS
 
 #include <wx/mstream.h>
+#include <memory>
+#include <functional>
+
+typedef std::unique_ptr<WebPDemuxer, std::function<void(WebPDemuxer*)>> WebPDemuxerPtr;
 
 bool DecodeWebPDataIntoImage(wxImage *image, WebPData *webp_data, bool verbose) {
     WebPBitstreamFeatures features;
@@ -61,7 +65,8 @@ bool DecodeWebPDataIntoImage(wxImage *image, WebPData *webp_data, bool verbose) 
         image->InitAlpha();
         unsigned char * rgb = image->GetData();
         unsigned char * alpha = image->GetAlpha();
-        for (unsigned int index_pixel = 0; index_pixel < image->GetWidth() * image->GetHeight(); index_pixel++) {
+        for (unsigned int index_pixel = 0; index_pixel < image->GetWidth() * image->GetHeight(); index_pixel++)
+        {
             unsigned int index_rgba = index_pixel*4; // in RGBA, 1 pixel is 4 bytes
             unsigned int index_rgb = index_pixel*3; // in RGB, 1 pixel is 3 bytes
             unsigned int index_alpha = index_pixel; // alpha channel, 1 pixel is 1 byte
@@ -91,46 +96,63 @@ bool DecodeWebPDataIntoImage(wxImage *image, WebPData *webp_data, bool verbose) 
     return true;
 }
 
-bool DecodeWebPFrameIntoImage(wxImage *image, int index, WebPData *webp_data, bool verbose) 
+bool DecodeWebPFrameIntoImage(wxImage *image, int index, WebPDemuxerPtr & demuxer, bool verbose) 
 {
-    WebPDemuxer* demux = WebPDemux(webp_data);
-    if (demux == NULL) 
-    {
-        if (verbose)
-        {
-            wxLogError("WebP: WebPDemux failed.");
-        }
-        return false;
-    }
-    //uint32_t width = WebPDemuxGetI(demux, WEBP_FF_CANVAS_WIDTH);
-    //uint32_t height = WebPDemuxGetI(demux, WEBP_FF_CANVAS_HEIGHT);
     bool ok = false;
-    WebPIterator iter;
-    // wxImageHandler index starts from 0, WebPDemuxGetFrame seems to start from 1
-    if (WebPDemuxGetFrame(demux, index+1, &iter)) 
-    {
-        ok = DecodeWebPDataIntoImage(image, &iter.fragment, verbose);
-        WebPDemuxReleaseIterator(&iter);
-    }
-    WebPDemuxDelete(demux);
-    return ok;
-}
-
-bool wxWEBPHandler::LoadFile(wxImage *image, wxInputStream& stream, bool verbose, int index)
-{
-    image->Destroy(); // all examples do this, so I do so as well
-    wxMemoryOutputStream mos;
-    stream.Read(mos); // this reads the entire file into memory
-    wxStreamBuffer * mosb = mos.GetOutputStreamBuffer();
-    WebPData webp_data;
-    webp_data.bytes = reinterpret_cast<uint8_t *>(mosb->GetBufferStart());
-    webp_data.size = mosb->GetBufferSize();
     // apparently, index can be -1 for "don't care", but libwebp does care
     if (index < 0) 
     {
         index = 0;
     }
-    return DecodeWebPFrameIntoImage(image, index, &webp_data, verbose);
+    WebPIterator iter;
+    // wxImageHandler index starts from 0 (first frame)
+    // WebPDemuxGetFrame to starts from 1 (0 means "last frame")
+    if (WebPDemuxGetFrame(demuxer.get(), index+1, &iter)) 
+    {
+        ok = DecodeWebPDataIntoImage(image, &iter.fragment, verbose);
+        WebPDemuxReleaseIterator(&iter);
+    }
+    return ok;
+}
+
+WebPDemuxerPtr CreateDemuxer(wxInputStream& stream, bool verbose = false) {
+    wxMemoryOutputStream * mos = new wxMemoryOutputStream;
+    stream.Read(*mos); // this reads the entire file into memory
+    // TODO: only read data as needed since WebPDemux can operate on partial data
+    wxStreamBuffer * mosb = mos->GetOutputStreamBuffer();
+    WebPData * webp_data = new WebPData;
+    webp_data->bytes = reinterpret_cast<uint8_t *>(mosb->GetBufferStart());
+    webp_data->size = mosb->GetBufferSize();
+    WebPDemuxerPtr demux
+    (
+        WebPDemux(webp_data), 
+        [mos, webp_data](WebPDemuxer * demux) 
+            {
+                WebPDemuxDelete(demux);    
+                delete webp_data;    
+                delete mos; // delete the buffer after the WebPDemuxer is deleted
+            }
+    );
+    if (demux == nullptr)
+    {
+        if (verbose)
+        {
+            wxLogError("WebP: WebPDemux failed.");
+        }
+    }
+    return demux;
+}
+
+bool wxWEBPHandler::LoadFile(wxImage *image, wxInputStream& stream, bool verbose, int index)
+{
+    image->Destroy(); // all examples do this, so I do so as well
+    bool ok = false;
+    WebPDemuxerPtr demux = CreateDemuxer(stream, verbose);
+    if (nullptr != demux) 
+    {
+        ok = DecodeWebPFrameIntoImage(image, index, demux, verbose);
+    }
+    return ok;
 }
 
 bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbose)
@@ -148,7 +170,8 @@ bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbos
         unsigned char * alpha = image->GetAlpha();
         int stride = image->GetWidth() * 4; // stride is the "width" of a "line" in bytes
         std::vector<unsigned char> rgba(stride * image->GetHeight());
-        for (unsigned int index_pixel = 0; index_pixel < image->GetWidth() * image->GetHeight(); index_pixel++) {
+        for (unsigned int index_pixel = 0; index_pixel < image->GetWidth() * image->GetHeight(); index_pixel++)
+        {
             unsigned int index_rgba = index_pixel*4; // in RGBA, 1 pixel is 4 bytes
             unsigned int index_rgb = index_pixel*3; // in RGB, 1 pixel is 3 bytes
             unsigned int index_alpha = index_pixel; // alpha channel, 1 pixel is 1 byte
@@ -169,7 +192,15 @@ bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbos
     return (output_size > 0 && stream.LastWrite() == output_size);
 }
 
-// TODO: implement int wxWEBPHandler::DoGetImageCount(wxInputStream & stream)
+int wxWEBPHandler::DoGetImageCount(wxInputStream & stream) {
+    int frame_count = -1;
+    WebPDemuxerPtr demux = CreateDemuxer(stream);
+    if (nullptr != demux)
+    {
+        frame_count = WebPDemuxGetI(demux.get(), WEBP_FF_FRAME_COUNT);
+    }
+    return frame_count;
+}
 
 bool wxWEBPHandler::DoCanRead(wxInputStream& stream)
 {

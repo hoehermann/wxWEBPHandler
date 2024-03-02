@@ -103,6 +103,25 @@ public:
         wxCHECK_MSG(AssertSimilarBytes(rgb, rgb_reference, side*side*3, rgb_difference_threshold), false, "AssertSimilarBytes failed on RGB data.");
         return true;
     }
+    bool AssertCountImage() {
+        /*
+        std::cout << "AssertCountAnimation" <<  std::endl;
+        wxImage loadingImage;
+        wxMemoryInputStream inputStream(webp_todo, sizeof(webp_todo));
+        int frame_count = DoGetImageCount(inputStream);
+        wxCHECK_MSG(frame_count == 1, false, "Incorrect frame count.");
+        return true;
+        */
+        return false;
+    }
+    bool AssertCountAnimation() {
+        std::cout << "AssertCountAnimation" <<  std::endl;
+        wxImage loadingImage;
+        wxMemoryInputStream inputStream(webp_16x16_numbers, sizeof(webp_16x16_numbers));
+        int frame_count = DoGetImageCount(inputStream);
+        wxCHECK_MSG(frame_count == 4, false, "Incorrect frame count.");
+        return true;
+    }
     bool AssertLoadAnimation() {
         std::cout << "AssertLoadAnimation" <<  std::endl;
         wxImage loadingImage;
@@ -129,6 +148,7 @@ int main(int, char**)
     result &= test.AssertDoCanReadFalseWhenWrong();
     result &= test.AssertRGBRoundtrip();
     result &= test.AssertRGBARoundtrip();
+    result &= test.AssertCountAnimation();
     result &= test.AssertLoadAnimation();
     if (result) {
         std::cout << "All is well." << std::endl;

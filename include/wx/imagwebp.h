@@ -32,6 +32,7 @@ public:
     virtual bool SaveFile(wxImage *image, wxOutputStream& stream, bool verbose=true) wxOVERRIDE;
 protected:
     virtual bool DoCanRead(wxInputStream& stream) wxOVERRIDE;
+    virtual int DoGetImageCount(wxInputStream &stream) wxOVERRIDE;
 #endif // wxUSE_STREAMS
 
 private:
