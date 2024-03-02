@@ -118,7 +118,7 @@ bool DecodeWebPFrameIntoImage(wxImage *image, int index, WebPDemuxerPtr & demuxe
 WebPDemuxerPtr CreateDemuxer(wxInputStream& stream, bool verbose = false) {
     wxMemoryOutputStream * mos = new wxMemoryOutputStream;
     stream.Read(*mos); // this reads the entire file into memory
-    // TODO: only read data as needed since WebPDemux can operate on partial data
+    // TODO: only read data as needed since WebPDemux can operate on partial data. could save some bandwidth with e.g. DoGetImageCount
     wxStreamBuffer * mosb = mos->GetOutputStreamBuffer();
     WebPData * webp_data = new WebPData;
     webp_data->bytes = reinterpret_cast<uint8_t *>(mosb->GetBufferStart());

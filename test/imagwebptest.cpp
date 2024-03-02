@@ -21,10 +21,7 @@ private:
             SaveFile(&savingImage, outputFile, true);
         }
         wxMemoryInputStream inputStream(outputStream);
-        wxCHECK_MSG(DoCanRead(inputStream), false, "DoCanRead returned false on generated data.");
-        inputStream.SeekI(0);
-        // the fact that the above reset is neccessary contradicts the comment "it's ok to modify the stream position here" in DoCanRead
-        // TODO: discuss
+        wxCHECK_MSG(CallDoCanRead(inputStream), false, "DoCanRead returned false on generated data.");
         LoadFile(&loadingImage, inputStream, true);
         wxCHECK_MSG(loadingImage.IsOk(), false, "Loading image failed.");
         return true;
@@ -49,7 +46,7 @@ public:
         std::cout << "AssertDoCanReadTrueWhenOk" <<  std::endl;
         std::string data("RIFF____WEBP____");
         wxMemoryInputStream stream(data.c_str(), data.size());
-        wxCHECK_MSG(DoCanRead(stream), false, "DoCanRead returned false on valid data.");
+        wxCHECK_MSG(CallDoCanRead(stream), false, "DoCanRead returned false on valid data.");
         return true;
     }
     bool AssertDoCanReadFalseWhenShort()
@@ -57,7 +54,7 @@ public:
         std::cout << "AssertDoCanReadFalseWhenShort" <<  std::endl;
         std::string data("RIFF____WE");
         wxMemoryInputStream stream(data.c_str(), data.size());
-        wxCHECK_MSG(!DoCanRead(stream), false, "DoCanRead returned true on short data.");
+        wxCHECK_MSG(!CallDoCanRead(stream), false, "DoCanRead returned true on short data.");
         return true;
     }
     bool AssertDoCanReadFalseWhenWrong()
@@ -65,7 +62,7 @@ public:
         std::cout << "AssertDoCanReadFalseWhenWrong" <<  std::endl;
         std::string data("RIFF____WEBX____");
         wxMemoryInputStream stream(data.c_str(), data.size());
-        wxCHECK_MSG(!DoCanRead(stream), false, "DoCanRead returned true on invalid data.");
+        wxCHECK_MSG(!CallDoCanRead(stream), false, "DoCanRead returned true on invalid data.");
         return true;
     }
     bool AssertRGBRoundtrip() {
@@ -118,7 +115,7 @@ public:
         std::cout << "AssertCountAnimation" <<  std::endl;
         wxImage loadingImage;
         wxMemoryInputStream inputStream(webp_16x16_numbers, sizeof(webp_16x16_numbers));
-        int frame_count = DoGetImageCount(inputStream);
+        int frame_count = GetImageCount(inputStream);
         wxCHECK_MSG(frame_count == 4, false, "Incorrect frame count.");
         return true;
     }
