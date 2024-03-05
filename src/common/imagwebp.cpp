@@ -65,15 +65,13 @@ bool DecodeWebPDataIntoImage(wxImage *image, WebPData *webp_data, bool verbose) 
         image->InitAlpha();
         unsigned char * rgb = image->GetData();
         unsigned char * alpha = image->GetAlpha();
-        for (unsigned int index_pixel = 0; index_pixel < image->GetWidth() * image->GetHeight(); index_pixel++)
+        size_t rgba_index = 0, rgb_index = 0, alpha_index = 0;
+        for (unsigned int pixel_counter = 0; pixel_counter < image->GetWidth() * image->GetHeight(); pixel_counter++)
         {
-            unsigned int index_rgba = index_pixel*4; // in RGBA, 1 pixel is 4 bytes
-            unsigned int index_rgb = index_pixel*3; // in RGB, 1 pixel is 3 bytes
-            unsigned int index_alpha = index_pixel; // alpha channel, 1 pixel is 1 byte
-            rgb[index_rgb++] = rgba[index_rgba++]; // R
-            rgb[index_rgb++] = rgba[index_rgba++]; // G
-            rgb[index_rgb++] = rgba[index_rgba++]; // B
-            alpha[index_alpha] = rgba[index_rgba]; // A
+            rgb[rgb_index++] = rgba[rgba_index++]; // R
+            rgb[rgb_index++] = rgba[rgba_index++]; // G
+            rgb[rgb_index++] = rgba[rgba_index++]; // B
+            alpha[alpha_index++] = rgba[rgba_index++]; // A
         }
         WebPFree(rgba);
     }
@@ -170,15 +168,13 @@ bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbos
         unsigned char * alpha = image->GetAlpha();
         int stride = image->GetWidth() * 4; // stride is the "width" of a "line" in bytes
         std::vector<unsigned char> rgba(stride * image->GetHeight());
-        for (unsigned int index_pixel = 0; index_pixel < image->GetWidth() * image->GetHeight(); index_pixel++)
+        size_t rgba_index = 0, rgb_index = 0, alpha_index = 0;
+        for (unsigned int pixel_counter = 0; pixel_counter < image->GetWidth() * image->GetHeight(); pixel_counter++)
         {
-            unsigned int index_rgba = index_pixel*4; // in RGBA, 1 pixel is 4 bytes
-            unsigned int index_rgb = index_pixel*3; // in RGB, 1 pixel is 3 bytes
-            unsigned int index_alpha = index_pixel; // alpha channel, 1 pixel is 1 byte
-            rgba[index_rgba++] = rgb[index_rgb++]; // R
-            rgba[index_rgba++] = rgb[index_rgb++]; // G
-            rgba[index_rgba++] = rgb[index_rgb++]; // B
-            rgba[index_rgba] = alpha[index_alpha]; // A
+            rgba[rgba_index++] = rgb[rgb_index++]; // R
+            rgba[rgba_index++] = rgb[rgb_index++]; // G
+            rgba[rgba_index++] = rgb[rgb_index++]; // B
+            rgba[rgba_index++] = alpha[alpha_index++]; // A
         }
         output_size = WebPEncodeRGBA(rgba.data(), image->GetWidth(), image->GetHeight(), stride, quality_factor, &output);
     }
