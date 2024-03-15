@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        wx/imagwebp.hpp
+// Name:        wx/imagwebp.h
 // Purpose:     wxImage WebP handler
 // Author:      Hermann Höhne
 // Copyright:   (c) Hermann Höhne
@@ -15,7 +15,7 @@
 // wxWEBPHandler
 //-----------------------------------------------------------------------------
 
-#if wxUSE_WEBP
+#if wxUSE_LIBWEBP
 class WXDLLIMPEXP_CORE wxWEBPHandler : public wxImageHandler
 {
 public:
@@ -23,7 +23,7 @@ public:
     {
         m_name = wxT("WebP file");
         m_extension = wxT("webp");
-        //m_type = wxBITMAP_TYPE_INVALID; // no idea what to choose here
+        //m_type = wxBITMAP_TYPE_WEBP; type omitted for now
         m_mime = wxT("image/webp");
     }
 
@@ -39,6 +39,6 @@ private:
     wxDECLARE_DYNAMIC_CLASS(wxWEBPHandler);
 };
 
-#endif // wxUSE_WEBP
+#endif // wxUSE_LIBWEBP
 
 #endif // _WX_IMAGWEBP_H_

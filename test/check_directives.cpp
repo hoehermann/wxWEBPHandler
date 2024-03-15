@@ -4,6 +4,6 @@
 #ifndef wxUSE_IMAGE
     #error "Trying to build wxWEBPHandler without wxUSE_IMAGE."
 #endif    
-#ifndef wxUSE_WEBP
-    #error "Trying to build wxWEBPHandler without wxUSE_WEBP."
+#ifndef wxUSE_LIBWEBP
+    #error "Trying to build wxWEBPHandler without wxUSE_LIBWEBP."
 #endif

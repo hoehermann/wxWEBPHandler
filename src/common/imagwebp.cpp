@@ -6,12 +6,13 @@
 // Licence:     wxWidgets licence
 /////////////////////////////////////////////////////////////////////////////
 
-// based on code by Sylvain Bougnoux and Khral Steelforge (https://forums.wxwidgets.org/viewtopic.php?t=39212)
+// based on code by Sylvain Bougnoux, Khral Steelforge and Markus Juergens
+// see https://forums.wxwidgets.org/viewtopic.php?t=39212
 
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
 
-#if wxUSE_IMAGE && wxUSE_WEBP
+#if wxUSE_IMAGE && wxUSE_LIBWEBP
 
 #include "wx/imagwebp.h"
 #include "webp/demux.h"
@@ -54,7 +55,7 @@ bool DecodeWebPDataIntoImage(wxImage *image, WebPData *webp_data, bool verbose) 
     {
         // image has alpha channel. needs to be decoded, then re-ordered.
         uint8_t * rgba = WebPDecodeRGBA(webp_data->bytes, webp_data->size, &features.width, &features.height);
-        if (rgba == NULL) 
+        if (nullptr == rgba) 
         {
             if (verbose) 
             {
@@ -66,7 +67,7 @@ bool DecodeWebPDataIntoImage(wxImage *image, WebPData *webp_data, bool verbose) 
         unsigned char * rgb = image->GetData();
         unsigned char * alpha = image->GetAlpha();
         size_t rgba_index = 0, rgb_index = 0, alpha_index = 0;
-        for (unsigned int pixel_counter = 0; pixel_counter < image->GetWidth() * image->GetHeight(); pixel_counter++)
+        for (int pixel_counter = 0; pixel_counter < image->GetWidth() * image->GetHeight(); pixel_counter++)
         {
             rgb[rgb_index++] = rgba[rgba_index++]; // R
             rgb[rgb_index++] = rgba[rgba_index++]; // G
@@ -81,7 +82,7 @@ bool DecodeWebPDataIntoImage(wxImage *image, WebPData *webp_data, bool verbose) 
         int buffer_size = image->GetWidth() * image->GetHeight() * 3;
         int stride = image->GetWidth() * 3;
         uint8_t * output_buffer = WebPDecodeRGBInto(webp_data->bytes, webp_data->size, image->GetData(), buffer_size, stride);
-        if (output_buffer == NULL)
+        if (nullptr == output_buffer)
         {
             if (verbose) 
             {
@@ -153,7 +154,7 @@ bool wxWEBPHandler::LoadFile(wxImage *image, wxInputStream& stream, bool verbose
     return ok;
 }
 
-bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbose)
+bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool)
 {
     float quality_factor = 90;
     if (image->HasOption(wxIMAGE_OPTION_QUALITY))
@@ -161,7 +162,7 @@ bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbos
         quality_factor = image->GetOptionInt(wxIMAGE_OPTION_QUALITY);
     }
     size_t output_size = 0;
-    uint8_t * output = NULL;
+    uint8_t * output = nullptr;
     unsigned char * rgb = image->GetData();
     if (image->HasAlpha())
     {
@@ -169,7 +170,7 @@ bool wxWEBPHandler::SaveFile(wxImage *image, wxOutputStream& stream, bool verbos
         int stride = image->GetWidth() * 4; // stride is the "width" of a "line" in bytes
         std::vector<unsigned char> rgba(stride * image->GetHeight());
         size_t rgba_index = 0, rgb_index = 0, alpha_index = 0;
-        for (unsigned int pixel_counter = 0; pixel_counter < image->GetWidth() * image->GetHeight(); pixel_counter++)
+        for (int pixel_counter = 0; pixel_counter < image->GetWidth() * image->GetHeight(); pixel_counter++)
         {
             rgba[rgba_index++] = rgb[rgb_index++]; // R
             rgba[rgba_index++] = rgb[rgb_index++]; // G
@@ -216,4 +217,4 @@ bool wxWEBPHandler::DoCanRead(wxInputStream& stream)
 
 #endif // wxUSE_STREAMS
 
-#endif // wxUSE_IMAGE && wxUSE_WEBP
+#endif // wxUSE_IMAGE && wxUSE_LIBWEBP
