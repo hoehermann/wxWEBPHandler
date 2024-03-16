@@ -117,7 +117,8 @@ bool DecodeWebPFrameIntoImage(wxImage *image, int index, WebPDemuxerPtr & demuxe
 WebPDemuxerPtr CreateDemuxer(wxInputStream& stream, bool verbose = false) {
     wxMemoryOutputStream * mos = new wxMemoryOutputStream;
     stream.Read(*mos); // this reads the entire file into memory
-    // TODO: only read data as needed since WebPDemux can operate on partial data. could save some bandwidth with e.g. DoGetImageCount
+    // TODO: Only read data as needed. WebPDemux can operate on partial data.
+    //       Could save some bandwidth with e.g. DoGetImageCount
     wxStreamBuffer * mosb = mos->GetOutputStreamBuffer();
     WebPData * webp_data = new WebPData;
     webp_data->bytes = reinterpret_cast<uint8_t *>(mosb->GetBufferStart());
@@ -127,13 +128,19 @@ WebPDemuxerPtr CreateDemuxer(wxInputStream& stream, bool verbose = false) {
         WebPDemux(webp_data), 
         [mos, webp_data](WebPDemuxer * demux) 
             {
-                WebPDemuxDelete(demux);    
+                // delete the demuxer
+                WebPDemuxDelete(demux);
+                // delete the buffers after the WebPDemuxer is deleted
                 delete webp_data;    
-                delete mos; // delete the buffer after the WebPDemuxer is deleted
+                delete mos;
             }
     );
     if (demux == nullptr)
     {
+        // creating the demuxer failed, but the buffers still exist
+        // and need to be cleaned up
+        delete webp_data;    
+        delete mos;
         if (verbose)
         {
             wxLogError("WebP: WebPDemux failed.");
