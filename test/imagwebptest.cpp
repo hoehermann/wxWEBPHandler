@@ -45,24 +45,34 @@ public:
     {
         std::cout << "AssertDoCanReadTrueWhenOk" <<  std::endl;
         std::string data("RIFF____WEBP____");
-        wxMemoryInputStream stream(data.c_str(), data.size());
-        wxCHECK_MSG(CallDoCanRead(stream), false, "DoCanRead returned false on valid data.");
+        wxMemoryInputStream inputStream(data.c_str(), data.size());
+        wxCHECK_MSG(CallDoCanRead(inputStream), false, "DoCanRead returned false on valid data.");
         return true;
     }
     bool AssertDoCanReadFalseWhenShort()
     {
         std::cout << "AssertDoCanReadFalseWhenShort" <<  std::endl;
         std::string data("RIFF____WE");
-        wxMemoryInputStream stream(data.c_str(), data.size());
-        wxCHECK_MSG(!CallDoCanRead(stream), false, "DoCanRead returned true on short data.");
+        wxMemoryInputStream inputStream(data.c_str(), data.size());
+        wxCHECK_MSG(!CallDoCanRead(inputStream), false, "DoCanRead returned true on short data.");
         return true;
     }
     bool AssertDoCanReadFalseWhenWrong()
     {
         std::cout << "AssertDoCanReadFalseWhenWrong" <<  std::endl;
         std::string data("RIFF____WEBX____");
-        wxMemoryInputStream stream(data.c_str(), data.size());
-        wxCHECK_MSG(!CallDoCanRead(stream), false, "DoCanRead returned true on invalid data.");
+        wxMemoryInputStream inputStream(data.c_str(), data.size());
+        wxCHECK_MSG(!CallDoCanRead(inputStream), false, "DoCanRead returned true on invalid data.");
+        return true;
+    }
+    bool AssertSurviveGarbageData()
+    {
+        std::cout << "AssertSurviveGarbageData" <<  std::endl;
+        std::string data("RIFF____WEBP____ThisIsGarbageData");
+        wxMemoryInputStream inputStream(data.c_str(), data.size());
+        wxImage loadingImage;
+        wxCHECK_MSG(!LoadFile(&loadingImage, inputStream, false), false, "LoadFile returned true with garbage data.");
+        // NOTE: While it is reasonable that LoadFile returns false, the test shall make sure no NULL pointers are dereferenced or similar issues
         return true;
     }
     bool AssertRGBRoundtrip() {
@@ -123,8 +133,7 @@ public:
         std::cout << "AssertLoadAnimation" <<  std::endl;
         wxImage loadingImage;
         wxMemoryInputStream inputStream(webp_16x16_numbers, sizeof(webp_16x16_numbers));
-        bool static_data = true; // the data is static, wxImage shall not free it
-        LoadFile(&loadingImage, inputStream, true);
+        LoadFile(&loadingImage, inputStream);
         wxCHECK_MSG(loadingImage.IsOk(), false, "Loading image failed.");
 
         static const int side = 16;
@@ -143,6 +152,7 @@ int main(int, char**)
     result &= test.AssertDoCanReadTrueWhenOk();
     result &= test.AssertDoCanReadFalseWhenShort();
     result &= test.AssertDoCanReadFalseWhenWrong();
+    result &= test.AssertSurviveGarbageData();
     result &= test.AssertRGBRoundtrip();
     result &= test.AssertRGBARoundtrip();
     result &= test.AssertCountAnimation();
